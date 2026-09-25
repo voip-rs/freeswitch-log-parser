@@ -18,9 +18,9 @@ mod run;
 use std::io::{self, Write};
 use std::process;
 
-use clap::{CommandFactory, Parser};
+use clap::FromArgMatches;
 
-use cli::{resolve_color, Cli, Command};
+use cli::{cli_command, resolve_color, Cli, Command};
 use pager::PagedWriter;
 use run::RunCtx;
 
@@ -56,7 +56,7 @@ fn dispatch(cli: Cli) -> anyhow::Result<()> {
         #[cfg(feature = "tui")]
         Command::Monitor(args) => monitor::run(&ctx, args),
         Command::Completions { shell } => {
-            complete::generate_completions(shell, &mut Cli::command());
+            complete::generate_completions(shell, &mut cli_command());
             Ok(())
         }
         Command::Tail(args) => commands::tail::run(&ctx, &args, &mut io::stdout()),
@@ -69,7 +69,8 @@ fn dispatch(cli: Cli) -> anyhow::Result<()> {
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
 
-    if let Err(e) = dispatch(Cli::parse()) {
+    let cli = Cli::from_arg_matches(&cli_command().get_matches()).unwrap_or_else(|e| e.exit());
+    if let Err(e) = dispatch(cli) {
         // `{e:#}` prints the whole context chain; `{e}` prints only the
         // outermost, which is the one the caller already knew.
         eprintln!("fslog: {e:#}");

@@ -5,7 +5,7 @@ use std::io::{self, IsTerminal};
 use std::path::PathBuf;
 
 use anyhow::Context;
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Arg, ArgAction, CommandFactory, Parser, Subcommand, ValueEnum};
 
 use freeswitch_log_parser::{
     stamp_lower_bound, stamp_upper_bound, LogLevel, MessageKind, UnclassifiedTracking,
@@ -43,6 +43,29 @@ pub struct Cli {
 
     #[command(subcommand)]
     pub command: Command,
+}
+
+/// The clap command with `--help` printing the short help, like `-h`, on every
+/// subcommand; the long text stays under `fslog help <command>`.
+pub fn cli_command() -> clap::Command {
+    short_help(Cli::command())
+}
+
+fn short_help(cmd: clap::Command) -> clap::Command {
+    let cmd = cmd.disable_help_flag(true).arg(
+        Arg::new("help")
+            .short('h')
+            .long("help")
+            .help("Print help")
+            .action(ArgAction::HelpShort),
+    );
+    let names: Vec<String> = cmd
+        .get_subcommands()
+        .map(|sub| sub.get_name().to_string())
+        .collect();
+    names
+        .iter()
+        .fold(cmd, |cmd, name| cmd.mut_subcommand(name, short_help))
 }
 
 #[derive(Subcommand)]
@@ -91,7 +114,7 @@ pub struct FilterArgs {
 
     /// Fixed string substring search (case-insensitive)
     ///
-    /// Searches the same field --grep does; see its --help for the scope.
+    /// Searches the same field --grep does; `fslog help <command>` details it.
     #[arg(long, value_name = "PATTERN")]
     pub fgrep: Option<String>,
 
@@ -113,7 +136,7 @@ pub struct FilterArgs {
 
     /// Also match --fgrep/--grep/PATTERN inside attached block lines (SDP, CHANNEL_DATA)
     ///
-    /// Widens the pattern scope; see --grep's --help for what it is by default.
+    /// Widens --grep's default scope, which `fslog help <command>` details.
     #[arg(long)]
     pub match_blocks: bool,
 
@@ -200,7 +223,7 @@ pub struct SearchArgs {
 
     /// Fixed-string pattern (case-insensitive); shorthand for --fgrep
     ///
-    /// Searches the same field --grep does; see its --help for the scope.
+    /// Searches the same field --grep does; `fslog help <command>` details it.
     #[arg(value_name = "PATTERN")]
     pub pattern: Option<String>,
 
@@ -327,4 +350,45 @@ pub fn build_filter(
         until_ts: until.map(stamp_upper_bound),
     })
     .context("building the entry filter")
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::error::ErrorKind;
+
+    use super::cli_command;
+
+    fn rendered(args: &[&str]) -> String {
+        let err = cli_command()
+            .try_get_matches_from(args)
+            .expect_err("help exits");
+        assert_eq!(err.kind(), ErrorKind::DisplayHelp, "{args:?}");
+        err.render().to_string()
+    }
+
+    #[test]
+    fn long_help_flag_prints_the_short_help() {
+        cli_command().debug_assert();
+        let subcommands: Vec<String> = cli_command()
+            .get_subcommands()
+            .map(|sub| sub.get_name().to_string())
+            .collect();
+        assert!(!subcommands.is_empty());
+        assert_eq!(rendered(&["fslog", "--help"]), rendered(&["fslog", "-h"]));
+        for sub in &subcommands {
+            assert_eq!(
+                rendered(&["fslog", sub, "--help"]),
+                rendered(&["fslog", sub, "-h"]),
+                "{sub}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_help_subcommand_keeps_the_long_help() {
+        assert_ne!(
+            rendered(&["fslog", "help", "search"]),
+            rendered(&["fslog", "search", "-h"])
+        );
+    }
 }
