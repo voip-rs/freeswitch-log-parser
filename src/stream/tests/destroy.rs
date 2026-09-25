@@ -57,3 +57,9 @@ fn the_running_state_change_is_not_matched() {
     );
     assert!(!entry.is_destroy());
 }
+
+#[test]
+fn a_script_binding_releasing_its_session_is_not_a_destroy() {
+    let entry = only_entry("sofia/internal/1263@192.0.2.1 destroy/unlink session from object");
+    assert!(!entry.is_destroy());
+}

@@ -344,7 +344,7 @@ fn a_lifecycle_line_names_its_step() {
         ),
         (
             "sofia/internal/1263@192.0.2.1 destroy/unlink session from object",
-            LifecycleEvent::Destroy,
+            LifecycleEvent::Other,
         ),
         (
             "Channel [sofia/internal/1263@192.0.2.1] has been answered",

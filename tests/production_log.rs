@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 #[cfg(feature = "corpus")]
 use freeswitch_log_parser::{is_uuid, Field, FieldKind, FieldLocation, ParseWarning};
 use freeswitch_log_parser::{
-    parse_line, read_log_lines, Block, CodecMedia, LineKind, LogEntry, LogStream, MessageKind,
-    SessionTracker,
+    parse_line, read_log_lines, Block, CodecMedia, LifecycleEvent, LineKind, LogEntry, LogStream,
+    MessageKind, SessionTracker,
 };
 use xz2::read::XzDecoder;
 
@@ -454,6 +454,106 @@ fn check_render_with(at: &str, entry: &LogEntry) -> Vec<String> {
     bad
 }
 
+#[test]
+fn script_session_release_is_not_a_destroy_on_live_call() {
+    // Two script bindings release this session, then the call runs on to its hangup.
+    const LEG: &str = "cb110a5a-a25b-444c-88d4-0b04cf0ede40";
+
+    let mut releases = 0;
+    let mut hangup_at = None;
+    let mut destroys = Vec::new();
+    for_each_entry("freeswitch.log", |i, entry| {
+        if entry.uuid.as_deref() != Some(LEG) {
+            return Vec::new();
+        }
+        if entry.message.contains("destroy/unlink") {
+            releases += 1;
+            assert!(
+                !entry.is_destroy(),
+                "L{}: {}",
+                entry.line_number,
+                entry.message
+            );
+        }
+        if matches!(
+            entry.message_kind,
+            MessageKind::ChannelLifecycle {
+                event: LifecycleEvent::Hangup,
+                ..
+            }
+        ) {
+            hangup_at = Some(i);
+        }
+        if entry.is_destroy() {
+            destroys.push((i, entry.message.clone()));
+        }
+        Vec::new()
+    });
+
+    assert_eq!(releases, 2);
+    let hangup_at = hangup_at.expect("the leg hangs up");
+    let (first_at, first) = destroys.first().expect("the leg is destroyed");
+    assert!(*first_at > hangup_at, "destroy before hangup: {first}");
+    assert!(
+        first.ends_with("State Change CS_REPORTING -> CS_DESTROY"),
+        "{first}"
+    );
+    assert!(
+        destroys
+            .iter()
+            .any(|(_, m)| m.starts_with("Close Channel ")),
+        "{destroys:?}"
+    );
+}
+
+/// A channel's `is_destroy` hits come after anything showing it alive; a script
+/// session release is never one, and counts when the call is seen alive after it.
+#[cfg(feature = "corpus")]
+fn check_destroy(
+    at: &str,
+    entry: &LogEntry,
+    destroyed: &mut HashMap<String, u64>,
+    released: &mut HashMap<String, bool>,
+    violations: &mut Vec<String>,
+) {
+    let Some(uuid) = entry.uuid.as_deref() else {
+        return;
+    };
+    let alive = matches!(
+        entry.message_kind,
+        MessageKind::Execute { .. }
+            | MessageKind::Dialplan { .. }
+            | MessageKind::ChannelLifecycle {
+                event: LifecycleEvent::NewChannel
+                    | LifecycleEvent::Answered
+                    | LifecycleEvent::Hangup,
+                ..
+            }
+    );
+    if alive {
+        if let Some(line) = destroyed.get(uuid) {
+            violations.push(format!(
+                "{at}: {uuid} alive after destroy at L{line}: {}",
+                entry.message
+            ));
+        }
+        if let Some(live) = released.get_mut(uuid) {
+            *live = true;
+        }
+    }
+    if entry.message.contains("destroy/unlink session from object") {
+        if entry.is_destroy() {
+            violations.push(format!("{at}: script session release read as destroy"));
+        }
+        released.entry(uuid.to_string()).or_insert(false);
+    }
+    if entry.is_destroy() {
+        destroyed
+            .entry(uuid.to_string())
+            .or_insert(entry.line_number);
+    }
+}
+
 /// The one full-corpus pass: every check that needs more than a single file
 /// runs off the same decompression. Two minutes over 337 MB, so it answers to
 /// `corpus` rather than to `fixtures`, and runs before a release.
@@ -468,6 +568,9 @@ fn corpus_sweep() {
     let mut render_violations = Vec::new();
     let mut spans: u64 = 0;
     let mut truncated_spans: u64 = 0;
+    let mut destroy_violations = Vec::new();
+    let mut destroys: u64 = 0;
+    let mut releases_on_live_calls: u64 = 0;
     #[cfg(feature = "sdp")]
     let mut sdp_failures = Vec::new();
     #[cfg(feature = "sdp")]
@@ -477,9 +580,18 @@ fn corpus_sweep() {
         for file in files {
             let name = file.file_name().unwrap().to_string_lossy();
             let mut stream = LogStream::new(lines_from_file(file));
+            let mut destroyed: HashMap<String, u64> = HashMap::new();
+            let mut released: HashMap<String, bool> = HashMap::new();
 
             for entry in stream.by_ref() {
                 let at = format!("{corpus}/{name} L{}", entry.line_number);
+                check_destroy(
+                    &at,
+                    &entry,
+                    &mut destroyed,
+                    &mut released,
+                    &mut destroy_violations,
+                );
                 let fields = entry.fields();
                 spans += fields.len() as u64;
                 truncated_spans += fields.iter().filter(|f| entry.is_truncated(f)).count() as u64;
@@ -541,6 +653,9 @@ fn corpus_sweep() {
                 }
             }
 
+            releases_on_live_calls += released.values().filter(|live| **live).count() as u64;
+            destroys += destroyed.len() as u64;
+
             let stats = stream.stats();
             if stats.lines_processed == 0 {
                 accounting.push(format!("{corpus}/{name}: no lines processed"));
@@ -570,6 +685,12 @@ fn corpus_sweep() {
     assert_no_violations(span_violations, "malformed field spans");
     assert_no_violations(cut_violations, "cut span disagreements");
     assert_no_violations(render_violations, "render_with failures");
+    assert!(destroys > 0, "corpus should carry channel teardowns");
+    assert!(
+        releases_on_live_calls > 0,
+        "corpus should carry script session releases on live calls"
+    );
+    assert_no_violations(destroy_violations, "live channel after its destroy");
     #[cfg(feature = "sdp")]
     {
         assert!(sdp_parsed > 0, "corpus should contain SDP blocks");

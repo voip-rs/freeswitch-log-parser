@@ -26,7 +26,7 @@ pub(crate) fn channel_lifecycle(detail: &str) -> MessageKind {
         LifecycleEvent::NewChannel
     } else if detail.starts_with("Hangup ") {
         LifecycleEvent::Hangup
-    } else if detail.starts_with("Close Channel ") || detail.starts_with("destroy/unlink") {
+    } else if detail.starts_with("Close Channel ") {
         LifecycleEvent::Destroy
     } else if detail.contains("has been answered") {
         LifecycleEvent::Answered

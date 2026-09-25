@@ -67,8 +67,7 @@ pub enum LifecycleEvent {
     NewChannel,
     /// `Hangup <channel> [<state>] [<cause>]` (`switch_channel.c`).
     Hangup,
-    /// `Close Channel <channel> [<state>]` (`switch_core_session.c`) and the
-    /// channel-prefixed `destroy/unlink session` that follows it.
+    /// `Close Channel <channel> [<state>]` (`switch_core_session.c`).
     Destroy,
     /// `Channel [<channel>] has been answered` (`switch_channel.c`).
     Answered,
