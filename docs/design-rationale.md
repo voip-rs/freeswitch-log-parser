@@ -272,3 +272,9 @@ span asks whether it ends where its text does rather than matching the span agai
 warning naming the variable — a name no span carries, and one that cannot separate two
 variables a single entry narrated. A closed value's span stops before its `]`, so the
 test admits only what the cut left unterminated.
+
+## A channel's teardown is read from its classification, never from its text
+
+A substring search would also hit bare lines from other producers attached to the open
+entry. Only the channel close survives logging above debug, so the predicate holds on
+every teardown line it recognises and a consumer treats repeated hits as one.
