@@ -8,7 +8,9 @@ use freeswitch_types::variables::{SofiaVariable, VariableName};
 use freeswitch_types::{CallDirection, CallState, ChannelState, EventHeader, HangupCause};
 
 use crate::line::parse_line;
-use crate::message::{classify_message, LifecycleEvent, MessageKind};
+use crate::message::{
+    classify_message, parse_state_change, LifecycleEvent, MessageKind, StateChange,
+};
 use crate::stream::{Block, LogEntry, ParseWarning, SessionReading};
 use crate::uuid::is_uuid;
 
@@ -16,7 +18,7 @@ use super::conference::ConferenceMembership;
 use super::media::SessionMedia;
 use super::parse::{
     parse_bridge_args, parse_dialplan_context, parse_hangup, parse_new_channel,
-    parse_processing_line, parse_state_change, StateChange,
+    parse_processing_line,
 };
 
 /// Resolve a typed value into `slot`, or record that it could not be read.

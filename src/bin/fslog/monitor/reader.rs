@@ -10,8 +10,8 @@ use std::time::Instant;
 use log::{error, warn};
 
 use freeswitch_log_parser::{
-    CallDirection, ChannelState, ChannelVariable, EnrichedEntry, LifecycleEvent, LogStream,
-    MessageKind, SessionState, SessionTracker, TrackedChain,
+    CallDirection, ChannelVariable, EnrichedEntry, LifecycleEvent, LogStream, MessageKind,
+    SessionState, SessionTracker, TrackedChain,
 };
 
 use crate::files::{
@@ -56,22 +56,16 @@ pub(super) fn build_update(
         callee: state.and_then(|s| s.callee_number().map(str::to_string)),
     };
 
-    // A state change to CS_DESTROY ends the row too: the leg's own lifecycle
-    // line may sit in a rotated file the monitor never read.
     let event = match &enriched.entry.message_kind {
         MessageKind::ChannelLifecycle {
             event: LifecycleEvent::NewChannel,
             ..
         } => Some(CallEvent::NewChannel),
         MessageKind::ChannelLifecycle {
-            event: LifecycleEvent::Hangup | LifecycleEvent::Destroy,
+            event: LifecycleEvent::Hangup,
             ..
         } => Some(CallEvent::Hangup),
-        MessageKind::StateChange { .. }
-            if fields.channel_state == Some(ChannelState::CsDestroy) =>
-        {
-            Some(CallEvent::Hangup)
-        }
+        _ if enriched.entry.is_destroy() => Some(CallEvent::Hangup),
         _ => None,
     };
 

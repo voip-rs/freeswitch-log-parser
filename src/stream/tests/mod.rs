@@ -4,6 +4,7 @@
 mod blocks;
 mod codecs;
 mod collision;
+mod destroy;
 mod grouping;
 mod stats;
 mod warnings;

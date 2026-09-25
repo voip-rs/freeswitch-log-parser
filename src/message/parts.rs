@@ -168,6 +168,25 @@ pub(crate) fn hangup_channel(msg: &str) -> Option<&str> {
     Some(&rest[..bracket]).filter(|c| !c.is_empty())
 }
 
+/// Which of the two state vocabularies a `... Change <old> -> <new>` line speaks.
+pub(crate) enum StateChange<'a> {
+    Channel(&'a str),
+    Call(&'a str),
+}
+
+/// The new state a change line moves to. `Callstate Change` and `State Change`
+/// are distinct markers, so the two vocabularies never have to share a slot.
+pub(crate) fn parse_state_change(detail: &str) -> Option<StateChange<'_>> {
+    // Last arrow: the channel name ahead of it is free text.
+    let arrow = detail.rfind(" -> ")?;
+    let to = detail[arrow + 4..].trim();
+    if detail.contains("Callstate Change") {
+        Some(StateChange::Call(to))
+    } else {
+        Some(StateChange::Channel(to))
+    }
+}
+
 /// The channel token of a `New Channel <channel> [uuid]` line.
 pub(crate) fn new_channel_name(msg: &str) -> Option<&str> {
     let rest = msg.strip_prefix("New Channel ")?;

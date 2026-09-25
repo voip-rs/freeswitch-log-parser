@@ -37,6 +37,8 @@ synthetic `FileChange`/`DateChange` markers. `SipInvite` is the
 canonical `sip_call_id ↔ channel_uuid` correlation primitive — sofia
 emits it for every inbound and outbound call regardless of dialplan.
 Every entry carries both a typed `Block` and raw `attached` lines.
+`LogEntry::is_destroy()` names the entries that narrate a channel's
+teardown.
 
 `MessageKind::Variable` and a `Block::ChannelData` dump's keys carry a
 `VarName`, not a string: it stores the bare name, and

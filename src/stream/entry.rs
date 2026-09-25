@@ -2,14 +2,17 @@
 //! [`LogEntry`] record itself, and parsing anomalies ([`ParseWarning`]).
 
 use std::fmt;
+use std::str::FromStr;
 
 use crate::attached::AttachedLines;
 use crate::codec::{CodecMedia, CodecOffer, CodecParseError};
 use crate::decode::truncate_at_char_boundary;
 use crate::fields::FieldLocation;
 use crate::line::LineKind;
-use crate::message::{MessageKind, SdpDirection, VarName};
-use freeswitch_types::LogLevel;
+use crate::message::{
+    parse_state_change, LifecycleEvent, MessageKind, SdpDirection, StateChange, VarName,
+};
+use freeswitch_types::{ChannelState, LogLevel};
 
 use super::collision::MOD_LOGFILE_BUF_SIZE;
 
@@ -285,6 +288,23 @@ impl LogEntry {
             line_number: 0,
             warnings: Vec::new(),
             cut_texts: Vec::new(),
+        }
+    }
+
+    /// Whether this entry narrates its channel's teardown: the channel close, or
+    /// a state change into a terminal channel state. One channel may yield several.
+    pub fn is_destroy(&self) -> bool {
+        match &self.message_kind {
+            MessageKind::ChannelLifecycle {
+                event: LifecycleEvent::Destroy,
+                ..
+            } => true,
+            MessageKind::StateChange { detail } => matches!(
+                parse_state_change(detail),
+                Some(StateChange::Channel(to))
+                    if ChannelState::from_str(to).is_ok_and(|s| s.is_terminal())
+            ),
+            _ => false,
         }
     }
 }

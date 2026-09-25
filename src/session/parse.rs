@@ -45,24 +45,6 @@ pub(super) fn parse_new_channel(detail: &str) -> Option<&str> {
     new_channel_name(detail)
 }
 
-/// Which of the two state vocabularies a `... Change <old> -> <new>` line speaks.
-pub(super) enum StateChange<'a> {
-    Channel(&'a str),
-    Call(&'a str),
-}
-
-/// The new state a change line moves to. `Callstate Change` and `State Change`
-/// are distinct markers, so the two vocabularies never have to share a slot.
-pub(super) fn parse_state_change(detail: &str) -> Option<StateChange<'_>> {
-    let arrow = detail.find(" -> ")?;
-    let to = detail[arrow + 4..].trim();
-    if detail.contains("Callstate Change") {
-        Some(StateChange::Call(to))
-    } else {
-        Some(StateChange::Channel(to))
-    }
-}
-
 /// The cause in the last bracket of a `Hangup <channel> [<state>] [<cause>]`
 /// detail. The line's shape is the classifier's finding, not this one's.
 pub(super) fn parse_hangup(detail: &str) -> Option<&str> {
