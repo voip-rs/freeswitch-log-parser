@@ -1,10 +1,10 @@
 # freeswitch-log-parser
 
-[![CI](https://github.com/ticpu/freeswitch-log-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/ticpu/freeswitch-log-parser/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ticpu/5d6e27e07995772a5bf424d4cf51e608/raw/test-count.json)](https://github.com/ticpu/freeswitch-log-parser/actions/workflows/ci.yml)
+[![CI](https://github.com/voip-rs/freeswitch-log-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/voip-rs/freeswitch-log-parser/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ticpu/5d6e27e07995772a5bf424d4cf51e608/raw/test-count.json)](https://github.com/voip-rs/freeswitch-log-parser/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/freeswitch-log-parser)](https://crates.io/crates/freeswitch-log-parser)
 [![docs.rs](https://img.shields.io/docsrs/freeswitch-log-parser)](https://docs.rs/freeswitch-log-parser)
-[![license](https://img.shields.io/crates/l/freeswitch-log-parser)](https://github.com/ticpu/freeswitch-log-parser/blob/master/LICENSE)
+[![license](https://img.shields.io/crates/l/freeswitch-log-parser)](https://github.com/voip-rs/freeswitch-log-parser/blob/master/LICENSE)
 
 Rust library for parsing FreeSWITCH log files. Three-layer streaming
 architecture, no regex, single runtime dependency (`freeswitch-types`
@@ -191,7 +191,7 @@ bridged and transferred legs. It reads rotated `.xz` files directly and
 chains them in date order, so a single query spans the whole retention
 window.
 
-![fslog rendering one call with --blocks](https://raw.githubusercontent.com/ticpu/freeswitch-log-parser/master/docs/fslog-demo.webp)
+![fslog rendering one call with --blocks](https://raw.githubusercontent.com/voip-rs/freeswitch-log-parser/master/docs/fslog-demo.webp)
 
 *`fslog read docs/demo.log --blocks` — one synthetic call, start to hangup.*
 
@@ -202,7 +202,7 @@ bash/zsh/fish completions), the same binaries standalone, and
 `SHA256SUMS`:
 
 ```
-curl -LO https://github.com/ticpu/freeswitch-log-parser/releases/latest/download/fslog_<version>_amd64.deb
+curl -LO https://github.com/voip-rs/freeswitch-log-parser/releases/latest/download/fslog_<version>_amd64.deb
 sudo dpkg -i fslog_<version>_amd64.deb
 ```
 
