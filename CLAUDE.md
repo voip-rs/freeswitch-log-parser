@@ -185,7 +185,7 @@ Endpoint-specific: `"%s SOFIA EXECUTE\n"` (mod_sofia.c:232), `"%s RTC EXECUTE\n"
 - `Originate Resulted in Success: [channel] Peer UUID: uuid` → `OriginateSuccess`; `peer_uuid` is `None` on builds whose line omits the suffix
 - `sofia/profile/endpoint receiving|sending invite ...` → `SipInvite`, with profile and `call_id`
 - `mod_event_socket` command output → `EventSocket`
-- `RECV DTMF d:ms`, `INFO DTMF(d)` → `Dtmf`, carrying a typed `DtmfSource`
+- `RECV DTMF d:samples`, `INFO DTMF(d)` → `Dtmf`, carrying a typed `DtmfSource`
 - Everything else → `General`
 
 `FileChange` and `DateChange` are the two remaining `MessageKind` variants; they are synthetic markers a consumer emits at file and date boundaries and never come out of `classify_message`. `MessageKind::ALL_LABELS` is the authoritative list of category strings, in declaration order.

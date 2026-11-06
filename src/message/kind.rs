@@ -158,14 +158,16 @@ pub enum MessageKind {
     /// Event socket commands from `mod_event_socket`.
     EventSocket { detail: String },
     /// DTMF digit received on the channel.
-    /// Format: `[RTP] RECV DTMF <digit>:<duration_ms>` or `INFO DTMF(<digit>)`
+    /// Format: `[RTP] RECV DTMF <digit>:<duration_samples>` or `INFO DTMF(<digit>)`
     Dtmf {
         /// Where the DTMF was logged (RTP layer, channel layer, or SIP INFO).
         source: DtmfSource,
         /// The DTMF digit (0-9, *, #, A-D, or F for flash).
         digit: char,
-        /// Duration in milliseconds. `None` for SIP INFO DTMF (no duration logged).
-        duration_ms: Option<u32>,
+        /// Duration as logged, in RTP clock samples: 8 per ms when FreeSWITCH's 8 kHz
+        /// assumption holds, but the log does not name the telephone-event rate, so no
+        /// conversion is made. `None` for SIP INFO DTMF (no duration logged).
+        duration_samples: Option<u32>,
     },
     /// Anything not matching a more specific pattern.
     General,
@@ -242,9 +244,9 @@ impl fmt::Display for MessageKind {
             MessageKind::Dtmf {
                 source,
                 digit,
-                duration_ms,
-            } => match duration_ms {
-                Some(ms) => write!(f, "dtmf({source}:{digit}:{ms}ms)"),
+                duration_samples,
+            } => match duration_samples {
+                Some(samples) => write!(f, "dtmf({source}:{digit}:{samples})"),
                 None => write!(f, "dtmf({source}:{digit})"),
             },
             MessageKind::General => f.pad("general"),

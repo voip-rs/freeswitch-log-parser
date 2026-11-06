@@ -16,28 +16,28 @@ fn parse_digit_duration(rest: &str) -> Option<(char, u32)> {
     if !is_valid_dtmf_digit(digit) {
         return None;
     }
-    let duration_ms = rest[colon + 1..].parse::<u32>().ok()?;
-    Some((digit, duration_ms))
+    let duration_samples = rest[colon + 1..].parse::<u32>().ok()?;
+    Some((digit, duration_samples))
 }
 
 pub(super) fn parse_dtmf(msg: &str) -> Option<MessageKind> {
     // RTP RECV DTMF x:y
     if let Some(rest) = msg.strip_prefix("RTP RECV DTMF ") {
-        let (digit, duration_ms) = parse_digit_duration(rest)?;
+        let (digit, duration_samples) = parse_digit_duration(rest)?;
         return Some(MessageKind::Dtmf {
             source: DtmfSource::Rtp,
             digit,
-            duration_ms: Some(duration_ms),
+            duration_samples: Some(duration_samples),
         });
     }
 
     // RECV DTMF x:y
     if let Some(rest) = msg.strip_prefix("RECV DTMF ") {
-        let (digit, duration_ms) = parse_digit_duration(rest)?;
+        let (digit, duration_samples) = parse_digit_duration(rest)?;
         return Some(MessageKind::Dtmf {
             source: DtmfSource::Channel,
             digit,
-            duration_ms: Some(duration_ms),
+            duration_samples: Some(duration_samples),
         });
     }
 
@@ -54,7 +54,7 @@ pub(super) fn parse_dtmf(msg: &str) -> Option<MessageKind> {
         return Some(MessageKind::Dtmf {
             source: DtmfSource::SipInfo,
             digit,
-            duration_ms: None,
+            duration_samples: None,
         });
     }
 

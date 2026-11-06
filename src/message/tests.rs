@@ -707,11 +707,11 @@ fn dtmf_channel_digit() {
         MessageKind::Dtmf {
             source,
             digit,
-            duration_ms,
+            duration_samples,
         } => {
             assert_eq!(source, DtmfSource::Channel);
             assert_eq!(digit, '1');
-            assert_eq!(duration_ms, Some(2080));
+            assert_eq!(duration_samples, Some(2080));
         }
         other => panic!("expected Dtmf, got {other:?}"),
     }
@@ -724,11 +724,11 @@ fn dtmf_rtp_digit() {
         MessageKind::Dtmf {
             source,
             digit,
-            duration_ms,
+            duration_samples,
         } => {
             assert_eq!(source, DtmfSource::Rtp);
             assert_eq!(digit, '5');
-            assert_eq!(duration_ms, Some(1440));
+            assert_eq!(duration_samples, Some(1440));
         }
         other => panic!("expected Dtmf, got {other:?}"),
     }
@@ -741,11 +741,11 @@ fn dtmf_sip_info() {
         MessageKind::Dtmf {
             source,
             digit,
-            duration_ms,
+            duration_samples,
         } => {
             assert_eq!(source, DtmfSource::SipInfo);
             assert_eq!(digit, '7');
-            assert_eq!(duration_ms, None);
+            assert_eq!(duration_samples, None);
         }
         other => panic!("expected Dtmf, got {other:?}"),
     }
@@ -789,9 +789,9 @@ fn dtmf_display_with_duration() {
     let kind = MessageKind::Dtmf {
         source: DtmfSource::Channel,
         digit: '5',
-        duration_ms: Some(1440),
+        duration_samples: Some(1440),
     };
-    assert_eq!(format!("{kind}"), "dtmf(channel:5:1440ms)");
+    assert_eq!(format!("{kind}"), "dtmf(channel:5:1440)");
 }
 
 #[test]
@@ -799,7 +799,7 @@ fn dtmf_display_without_duration() {
     let kind = MessageKind::Dtmf {
         source: DtmfSource::SipInfo,
         digit: '9',
-        duration_ms: None,
+        duration_samples: None,
     };
     assert_eq!(format!("{kind}"), "dtmf(sip-info:9)");
 }
@@ -809,7 +809,7 @@ fn dtmf_label() {
     let kind = MessageKind::Dtmf {
         source: DtmfSource::Rtp,
         digit: '0',
-        duration_ms: Some(2000),
+        duration_samples: Some(2000),
     };
     assert_eq!(kind.label(), "dtmf");
 }
@@ -871,7 +871,7 @@ fn every_message_kind_label_is_listed_in_all_labels() {
         MessageKind::Dtmf {
             source: DtmfSource::Rtp,
             digit: '1',
-            duration_ms: None,
+            duration_samples: None,
         },
         MessageKind::General,
         MessageKind::FileChange,
