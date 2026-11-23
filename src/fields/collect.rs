@@ -10,7 +10,8 @@ use freeswitch_types::{ChannelVariable, EventHeader, VARIABLE_PREFIX};
 use crate::message::{
     classify_message, dialplan_parts, execute_parts, hangup_channel, is_channel_variable_narration,
     new_channel_name, paren_channel, parse_bracketed_value, regex_condition_parts,
-    set_export_parts, sip_invite_direction, strip_channel_prefix, MessageKind, SipInviteDirection,
+    rename_channel_parts, set_export_parts, sip_invite_direction, strip_channel_prefix,
+    MessageKind, SipInviteDirection,
 };
 use crate::uuid::find_uuids;
 
@@ -234,6 +235,9 @@ fn collect_typed(msg: &str, out: &mut Vec<Field>) {
         MessageKind::ChannelLifecycle { .. } if !collect_channel_prefixed(msg, out) => {
             if let Some(channel) = hangup_channel(msg).or_else(|| new_channel_name(msg)) {
                 push_channel(out, msg, channel);
+            } else if let Some((old, new)) = rename_channel_parts(msg) {
+                push_channel(out, msg, old);
+                push_channel(out, msg, new);
             }
         }
         _ => {}

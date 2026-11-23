@@ -181,7 +181,7 @@ Endpoint-specific: `"%s SOFIA EXECUTE\n"` (mod_sofia.c:232), `"%s RTC EXECUTE\n"
 - `State Change ...`, `Callstate Change ...`, a `SOFIA` state line → `StateChange`
 - `Audio Codec Compare ...` → `CodecNegotiation`, carrying the media type
 - RTP, RTCP, recording and other media narration → `Media`
-- new/close/hangup, bridge, ring, REFER, CANCEL, BYE → `ChannelLifecycle`, carrying a typed `LifecycleEvent` (`NewChannel`, `Hangup`, `Destroy`, `Answered`, `Other`) beside the raw detail
+- new/rename/close/hangup, bridge, ring, REFER, CANCEL, BYE → `ChannelLifecycle`, carrying a typed `LifecycleEvent` (`NewChannel`, `Rename`, `Hangup`, `Destroy`, `Answered`, `Other`) beside the raw detail; `rename_channel_parts` splits a rename's old and new names
 - `Originate Resulted in Success: [channel] Peer UUID: uuid` → `OriginateSuccess`; `peer_uuid` is `None` on builds whose line omits the suffix
 - `sofia/profile/endpoint receiving|sending invite ...` → `SipInvite`, with profile and `call_id`
 - `mod_event_socket` command output → `EventSocket`
@@ -252,7 +252,7 @@ Counters: `lines_processed` (every physical line), `lines_in_entries` (lines in 
 
 `SessionTracker` maintains `SessionState` per UUID:
 
-- `channel_name` — from CHANNEL_DATA blocks
+- `channel_name` — from CHANNEL_DATA blocks and the `New Channel` line, replaced by each `Rename Channel` line
 - `channel_state` (`CS_*`) and `call_state` — separate vocabularies, separate typed fields; neither displaces the other
 - `hangup_cause`, `call_direction` — typed from `freeswitch-types`. A value none of these vocabularies knows raises `ParseWarning::UnreadableValue` on the entry and leaves the last resolved value standing
 - `dialplan_context` — from dialplan processing messages; `dialplan_from`/`dialplan_to` carry the caller/dialed pair of a `Processing` line only, never a `parsing [ctx->ext]` context

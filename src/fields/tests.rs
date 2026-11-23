@@ -450,13 +450,23 @@ fn paren_channel_state_line_emits_channel() {
 }
 
 #[test]
-fn hangup_and_new_channel_emit_channel() {
+fn lifecycle_lines_emit_their_channels() {
     let hangup = "Hangup sofia/internal/1263@192.0.2.1 [CS_CONSUME_MEDIA] [NORMAL_CLEARING]";
     assert_eq!(
         spans(hangup),
         [
             (FieldKind::ChannelName, "sofia/internal/1263@192.0.2.1"),
             (FieldKind::IpAddr, "192.0.2.1"),
+        ]
+    );
+
+    let rename = "Rename Channel loopback/1000/default-a->loopback/1000-a [00112233-4455-6677-8899-aabbccddeeff]";
+    assert_eq!(
+        spans(rename),
+        [
+            (FieldKind::ChannelName, "loopback/1000/default-a"),
+            (FieldKind::ChannelName, "loopback/1000-a"),
+            (FieldKind::Uuid, "00112233-4455-6677-8899-aabbccddeeff"),
         ]
     );
 

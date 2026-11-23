@@ -11,7 +11,8 @@ use freeswitch_types::{
 
 use crate::line::parse_line;
 use crate::message::{
-    classify_message, parse_state_change, LifecycleEvent, MessageKind, StateChange,
+    classify_message, parse_state_change, rename_channel_parts, LifecycleEvent, MessageKind,
+    StateChange,
 };
 use crate::stream::{Block, LogEntry, ParseWarning, SessionReading};
 use crate::uuid::is_uuid;
@@ -321,6 +322,11 @@ impl SessionState {
                 LifecycleEvent::NewChannel => {
                     if self.channel_name.is_none() {
                         self.channel_name = parse_new_channel(detail).map(str::to_string);
+                    }
+                }
+                LifecycleEvent::Rename => {
+                    if let Some((_, new)) = rename_channel_parts(detail) {
+                        self.channel_name = Some(new.to_string());
                     }
                 }
                 LifecycleEvent::Hangup => {

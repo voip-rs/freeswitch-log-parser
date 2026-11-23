@@ -351,6 +351,10 @@ fn a_lifecycle_line_names_its_step() {
             LifecycleEvent::Answered,
         ),
         (
+            "Rename Channel loopback/1000/default-a->loopback/1000-a [a1b2c3d4-e5f6-7890-abcd-ef1234567890]",
+            LifecycleEvent::Rename,
+        ),
+        (
             "Ring-Ready sofia/internal/1263@192.0.2.1",
             LifecycleEvent::Other,
         ),
@@ -909,5 +913,30 @@ fn every_message_kind_label_is_listed_in_all_labels() {
         MessageKind::ALL_LABELS.len(),
         exemplars.len(),
         "ALL_LABELS lists a label no variant returns"
+    );
+}
+
+#[test]
+fn rename_splits_at_its_one_arrow() {
+    assert_eq!(
+        rename_channel_parts(
+            "Rename Channel loopback/1000/default-a->loopback/1000-a [a1b2c3d4-e5f6-7890-abcd-ef1234567890]"
+        ),
+        Some(("loopback/1000/default-a", "loopback/1000-a"))
+    );
+}
+
+#[test]
+fn rename_with_a_second_arrow_does_not_split() {
+    // Either arrow could be the separator, so neither name can be trusted.
+    assert_eq!(
+        rename_channel_parts(
+            "Rename Channel loopback/a->b-a->loopback/c-a [a1b2c3d4-e5f6-7890-abcd-ef1234567890]"
+        ),
+        None
+    );
+    assert_eq!(
+        rename_channel_parts("Rename Channel loopback/a-a->loopback/b-a"),
+        None
     );
 }

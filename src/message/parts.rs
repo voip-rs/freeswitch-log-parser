@@ -194,6 +194,21 @@ pub(crate) fn new_channel_name(msg: &str) -> Option<&str> {
     Some(&rest[..bracket]).filter(|c| !c.is_empty())
 }
 
+/// The old and new names of a `Rename Channel <old>-><new> [<uuid>]` line
+/// (`switch_channel_set_name`). `None` unless `->` occurs exactly once, since a name
+/// holding it would make the split ambiguous.
+pub fn rename_channel_parts(msg: &str) -> Option<(&str, &str)> {
+    let rest = msg.strip_prefix("Rename Channel ")?;
+    let names = &rest[..rest.rfind(" [")?];
+    let mut arrows = names.match_indices("->");
+    let (at, _) = arrows.next()?;
+    if arrows.next().is_some() {
+        return None;
+    }
+    let (old, new) = (&names[..at], &names[at + 2..]);
+    (!old.is_empty() && !new.is_empty()).then_some((old, new))
+}
+
 pub(crate) fn strip_channel_prefix(msg: &str) -> Option<(&str, &str)> {
     if !msg.starts_with("sofia/") && !msg.starts_with("loopback/") {
         return None;

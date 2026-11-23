@@ -24,6 +24,8 @@ pub(super) fn originate_success(msg: &str) -> Option<MessageKind> {
 pub(crate) fn channel_lifecycle(detail: &str) -> MessageKind {
     let event = if detail.starts_with("New Channel ") {
         LifecycleEvent::NewChannel
+    } else if detail.starts_with("Rename Channel ") {
+        LifecycleEvent::Rename
     } else if detail.starts_with("Hangup ") {
         LifecycleEvent::Hangup
     } else if detail.starts_with("Close Channel ") {
@@ -120,6 +122,7 @@ fn extract_call_id(rest: &str) -> Option<String> {
 pub(super) fn detect_channel_lifecycle(msg: &str) -> Option<MessageKind> {
     let lifecycle_prefixes = [
         "New Channel ",
+        "Rename Channel ",
         "Close Channel ",
         "Hangup ",
         "Ring-Ready ",

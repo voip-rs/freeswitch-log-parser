@@ -18,5 +18,5 @@ pub(crate) use parts::{
     dialplan_parts, execute_parts, hangup_channel, new_channel_name, paren_channel,
     parse_bracketed_value, parse_state_change, set_export_parts, strip_channel_prefix, StateChange,
 };
-pub use parts::{regex_condition_parts, RegexCondition};
+pub use parts::{regex_condition_parts, rename_channel_parts, RegexCondition};
 pub use varname::VarName;

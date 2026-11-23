@@ -448,6 +448,43 @@ fn loopback_b_leg_links_to_its_a_leg() {
 }
 
 #[test]
+fn renamed_loopback_a_leg_pairs_under_its_new_name() {
+    // mod_loopback names the A leg after the dial text, then renames it to the
+    // form its B leg's name implies.
+    let lines = |rename: bool| {
+        let mut lines = vec![full_line(
+            UUID1,
+            TS1,
+            "New Channel loopback/1000/default-a [ignored]",
+        )];
+        if rename {
+            lines.push(full_line(
+                UUID1,
+                TS1,
+                "Rename Channel loopback/1000/default-a->loopback/1000-a [ignored]",
+            ));
+        }
+        lines.push(full_line(
+            UUID2,
+            TS1,
+            "New Channel loopback/1000-b [ignored]",
+        ));
+        lines
+    };
+    let renamed = track(lines(true));
+    assert_eq!(
+        renamed.sessions()[UUID1].channel_name.as_deref(),
+        Some("loopback/1000-a")
+    );
+    assert_eq!(
+        renamed.sessions()[UUID2].other_leg_uuid.as_deref(),
+        Some(UUID1)
+    );
+    let unrenamed = track(lines(false));
+    assert!(unrenamed.sessions()[UUID2].other_leg_uuid.is_none());
+}
+
+#[test]
 fn concurrent_loopbacks_to_one_destination_do_not_link() {
     let tracker = track(vec![
         full_line(UUID1, TS1, "New Channel loopback/tty-a [ignored]"),

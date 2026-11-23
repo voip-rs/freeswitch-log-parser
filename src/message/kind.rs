@@ -65,6 +65,8 @@ impl fmt::Display for SdpDirection {
 pub enum LifecycleEvent {
     /// `New Channel <channel> [<uuid>]` (`switch_channel.c`).
     NewChannel,
+    /// `Rename Channel <old>-><new> [<uuid>]` (`switch_channel.c`).
+    Rename,
     /// `Hangup <channel> [<state>] [<cause>]` (`switch_channel.c`).
     Hangup,
     /// `Close Channel <channel> [<state>]` (`switch_core_session.c`).
@@ -79,6 +81,7 @@ impl fmt::Display for LifecycleEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             LifecycleEvent::NewChannel => f.pad("new-channel"),
+            LifecycleEvent::Rename => f.pad("rename"),
             LifecycleEvent::Hangup => f.pad("hangup"),
             LifecycleEvent::Destroy => f.pad("destroy"),
             LifecycleEvent::Answered => f.pad("answered"),
