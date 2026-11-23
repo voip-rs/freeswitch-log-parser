@@ -60,6 +60,43 @@ fn sdp_body_parses_into_typed_codecs() {
 
 #[cfg(feature = "sdp")]
 #[test]
+fn held_stream_names_its_offer_only_when_asked() {
+    let lines = vec![
+        full_line(UUID1, TS1, "Remote SDP:"),
+        format!("{UUID1} v=0"),
+        format!("{UUID1} o=- 1 1 IN IP4 192.0.2.10"),
+        format!("{UUID1} s=-"),
+        format!("{UUID1} c=IN IP4 192.0.2.10"),
+        format!("{UUID1} t=0 0"),
+        format!("{UUID1} m=audio 30000 RTP/AVP 0"),
+        format!("{UUID1} m=video 0 RTP/AVP 99"),
+        format!("{UUID1} a=rtpmap:99 H264/90000"),
+        full_line(UUID2, TS2, "Next"),
+    ];
+    let entries: Vec<_> = LogStream::new(lines.into_iter()).collect();
+    let block = entries[0].block.as_ref().expect("sdp block");
+    let names = |codecs: freeswitch_types::sdp::SdpCodecs| -> Vec<String> {
+        codecs
+            .sections()
+            .iter()
+            .flat_map(|s| s.entries())
+            .filter_map(|e| match e {
+                freeswitch_types::sdp::SdpCodecEntry::Rtp(c) => Some(c.name().to_string()),
+                _ => None,
+            })
+            .collect()
+    };
+
+    let switch_view = block.sdp_codecs().unwrap().unwrap();
+    assert!(!names(switch_view).contains(&"H264".to_string()));
+
+    let options = freeswitch_types::sdp::SdpParseOptions::new().with_port_zero_attributes(true);
+    let peer_view = block.sdp_codecs_with(&options).unwrap().unwrap();
+    assert!(names(peer_view).contains(&"H264".to_string()));
+}
+
+#[cfg(feature = "sdp")]
+#[test]
 fn only_sdp_blocks_yield_codecs() {
     let lines = vec![
         full_line(

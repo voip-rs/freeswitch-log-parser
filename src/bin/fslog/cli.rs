@@ -9,7 +9,9 @@ use clap::{Arg, ArgAction, CommandFactory, Parser, Subcommand, ValueEnum};
 
 use freeswitch_log_parser::{
     stamp_lower_bound, stamp_upper_bound, LogLevel, MessageKind, UnclassifiedTracking,
+    DEFAULT_BLOCK_PARSE,
 };
+use freeswitch_types::BlockParse;
 
 use crate::files::DEFAULT_MAX_LINE_BYTES;
 
@@ -40,6 +42,10 @@ pub struct Cli {
     /// Bytes of one physical line to read before dropping its remainder
     #[arg(long, value_name = "BYTES", default_value_t = DEFAULT_MAX_LINE_BYTES)]
     pub max_line_bytes: usize,
+
+    /// Bracket-block parser revision of the switch that wrote the log, for reading dial strings
+    #[arg(long, value_name = "REVISION", default_value_t = DEFAULT_BLOCK_PARSE)]
+    pub block_parse: BlockParse,
 
     #[command(subcommand)]
     pub command: Command,
@@ -170,9 +176,10 @@ impl FilterArgs {
         }
     }
 
-    pub fn printer(&self, color: ColorMode) -> EntryPrinter {
+    pub fn printer(&self, color: ColorMode, block_parse: BlockParse) -> EntryPrinter {
         EntryPrinter {
             color,
+            block_parse,
             show_blocks: self.blocks,
             show_session: self.session,
             show_line_numbers: self.line_numbers,

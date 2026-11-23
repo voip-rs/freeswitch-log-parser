@@ -16,9 +16,9 @@ pub fn run(ctx: &RunCtx, args: &TailArgs, out: &mut dyn Write) -> anyhow::Result
     let failures = ReadFailures::default();
     let lines = open_tail_reader(&path, args.lines, ctx.max_line_bytes, &failures)?;
 
-    let printer = args.filter.printer(ctx.color);
+    let printer = args.filter.printer(ctx.color, ctx.block_parse);
     let stream = LogStream::new(lines).unclassified_tracking(args.filter.tracking());
-    let mut tracker = SessionTracker::new(stream);
+    let mut tracker = SessionTracker::new(stream).with_block_parse(ctx.block_parse);
 
     for enriched in tracker.by_ref() {
         if !filter.matches(&enriched.entry) {

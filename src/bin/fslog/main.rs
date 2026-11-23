@@ -44,12 +44,14 @@ fn dispatch(cli: Cli) -> anyhow::Result<()> {
         color,
         pager,
         max_line_bytes,
+        block_parse,
         command,
     } = cli;
     let ctx = RunCtx {
         dir,
         color: resolve_color(color),
         max_line_bytes,
+        block_parse,
     };
 
     match command {

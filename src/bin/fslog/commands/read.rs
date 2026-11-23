@@ -32,7 +32,7 @@ pub fn run(ctx: &RunCtx, args: &ReadArgs, out: &mut dyn Write) -> anyhow::Result
         }
     };
 
-    let printer = args.filter.printer(ctx.color);
+    let printer = args.filter.printer(ctx.color, ctx.block_parse);
     let plan = RunPlan {
         filter: &filter,
         printer: &printer,

@@ -158,7 +158,7 @@ pub fn run(ctx: &RunCtx, args: &SearchArgs, out: &mut dyn Write) -> anyhow::Resu
         return Ok(());
     }
 
-    let printer = args.filter.printer(ctx.color);
+    let printer = args.filter.printer(ctx.color, ctx.block_parse);
     let failures = ReadFailures::default();
 
     // The narrowed set is unsound for output under `--related`: a discovered
@@ -168,6 +168,7 @@ pub fn run(ctx: &RunCtx, args: &SearchArgs, out: &mut dyn Write) -> anyhow::Resu
         let legs = related::discover(
             build_segments(&rendered, ctx.max_line_bytes, &failures),
             &filter.for_discovery(),
+            ctx.block_parse,
         );
         failures.check()?;
         if legs.is_empty() {

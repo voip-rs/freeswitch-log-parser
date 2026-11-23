@@ -18,22 +18,14 @@ fn deindex(map: &mut HashMap<String, HashSet<String>>, key: &str, uuid: &str) {
     }
 }
 
-/// One indexed field on either side of the mutation bracket.
-struct Change<T> {
-    old: Option<T>,
-    new: Option<T>,
-}
-
-/// Move `uuid` between the sets a set-valued index keys by name.
-fn reindex(map: &mut HashMap<String, HashSet<String>>, uuid: &str, change: Change<String>) {
-    if change.old == change.new {
-        return;
+/// Move `uuid` between the sets a set-valued index keys by name, from the keys it held
+/// before the bracket to the ones it holds after.
+fn reindex(map: &mut HashMap<String, HashSet<String>>, uuid: &str, old: &[String], new: &[String]) {
+    for key in old.iter().filter(|k| !new.contains(k)) {
+        deindex(map, key, uuid);
     }
-    if let Some(old) = change.old {
-        deindex(map, &old, uuid);
-    }
-    if let Some(new) = change.new {
-        map.entry(new).or_default().insert(uuid.to_string());
+    for key in new {
+        map.entry(key.clone()).or_default().insert(uuid.to_string());
     }
 }
 
@@ -41,7 +33,7 @@ fn reindex(map: &mut HashMap<String, HashSet<String>>, uuid: &str, change: Chang
 #[derive(Default)]
 pub(super) struct IndexedFields {
     channel_name: Option<String>,
-    pending_bridge_target: Option<String>,
+    pending_bridge_targets: Vec<String>,
     other_leg_uuid: Option<String>,
     conference: Option<ConferenceMembership>,
 }
@@ -50,7 +42,7 @@ impl IndexedFields {
     pub(super) fn of(state: &SessionState) -> Self {
         IndexedFields {
             channel_name: state.channel_name.clone(),
-            pending_bridge_target: state.pending_bridge_target.clone(),
+            pending_bridge_targets: state.pending_bridge_targets.clone(),
             other_leg_uuid: state.other_leg_uuid.clone(),
             conference: state.conference.clone(),
         }
@@ -79,18 +71,14 @@ impl<I: Iterator<Item = String>> SessionTracker<I> {
         reindex(
             &mut self.by_channel_name,
             uuid,
-            Change {
-                old: old.channel_name,
-                new: new.channel_name,
-            },
+            old.channel_name.as_slice(),
+            new.channel_name.as_slice(),
         );
         reindex(
             &mut self.by_pending_target,
             uuid,
-            Change {
-                old: old.pending_bridge_target,
-                new: new.pending_bridge_target,
-            },
+            &old.pending_bridge_targets,
+            &new.pending_bridge_targets,
         );
 
         if old.other_leg_uuid != new.other_leg_uuid {

@@ -366,6 +366,7 @@ fn fixture_dump_all_calls_have_valid_timestamps() {
         &path,
         ContextFilter::None,
         usize::MAX,
+        freeswitch_log_parser::DEFAULT_BLOCK_PARSE,
         Duration::from_secs(3600),
     )
     .expect("process_log should succeed on fixtures");
@@ -400,6 +401,7 @@ fn fixture_no_cross_file_timestamp_inflation() {
         &path,
         ContextFilter::None,
         usize::MAX,
+        freeswitch_log_parser::DEFAULT_BLOCK_PARSE,
         Duration::from_secs(3600),
     )
     .expect("process_log should succeed on fixtures");
@@ -432,6 +434,7 @@ fn fixture_rotated_only_calls_bounded_duration() {
         &path,
         ContextFilter::None,
         usize::MAX,
+        freeswitch_log_parser::DEFAULT_BLOCK_PARSE,
         Duration::from_secs(3600),
     )
     .expect("process_log should succeed on fixtures");

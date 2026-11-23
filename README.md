@@ -59,7 +59,8 @@ Codec negotiation blocks are typed per media type: audio and video traces
 carry different fields and never share a block, and near-match verdicts are
 recorded rather than treated as parse failures. With the `sdp` feature,
 `Block::sdp_codecs()` parses an SDP body on demand through
-`freeswitch-types` — the only place text and DTMF payloads appear, since the
+`freeswitch-types` as the switch reads it, and `Block::sdp_codecs_with` reads
+what the peer wrote on a held stream — the only place text and DTMF payloads appear, since the
 negotiation trace never mentions them. It is off by default so a Layer 2
 consumer keeps the crate's minimal dependency tree; `fslog` enables it.
 
@@ -69,7 +70,9 @@ negotiated codecs per media type)
 and propagates it across entries. Also links bridged a-leg ↔ b-leg
 sessions via `other_leg_uuid` — from the explicit `Peer UUID:` suffix
 when present, by matching a live b-leg `channel_name` when FreeSWITCH
-omits it, or by mod_loopback's A/B leg naming. Conference membership is
+omits it, by the name a bridged sofia leg takes (`parse_bridge_args`,
+which reads a dial string for the `BlockParse` revision the caller names),
+or by mod_loopback's A/B leg naming. Conference membership is
 tracked per conference instance, so a name reused by a later conference
 does not merge the two; `SessionTracker::conference_members` lists an
 instance's UUIDs. `SessionState::variable` reads a learned variable by

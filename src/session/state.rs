@@ -5,7 +5,9 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use freeswitch_types::variables::{SofiaVariable, VariableName};
-use freeswitch_types::{CallDirection, CallState, ChannelState, EventHeader, HangupCause};
+use freeswitch_types::{
+    BlockParse, CallDirection, CallState, ChannelState, EventHeader, HangupCause,
+};
 
 use crate::line::parse_line;
 use crate::message::{
@@ -105,8 +107,8 @@ pub struct SessionState {
     pub conference: Option<ConferenceMembership>,
     /// Codecs negotiated on this leg, by media type and direction.
     pub media: SessionMedia,
-    /// Pending bridge target channel from `EXECUTE bridge()`, consumed when B-leg `New Channel` matches.
-    pub(crate) pending_bridge_target: Option<String>,
+    /// Channel names the B leg of a pending `bridge()` may report, cleared once one links.
+    pub(crate) pending_bridge_targets: Vec<String>,
     /// All variables learned so far, with the `variable_` prefix stripped from names.
     pub variables: HashMap<String, String>,
 }
@@ -198,7 +200,7 @@ impl SessionState {
             other_leg_uuid,
             conference,
             media,
-            pending_bridge_target: _,
+            pending_bridge_targets: _,
             variables: _,
         } = self;
 
@@ -274,7 +276,11 @@ impl SessionState {
     }
 
     /// Absorb an entry, returning whatever readings its values defeated.
-    pub(super) fn update_from_entry(&mut self, entry: &LogEntry) -> Vec<ParseWarning> {
+    pub(super) fn update_from_entry(
+        &mut self,
+        entry: &LogEntry,
+        block_parse: BlockParse,
+    ) -> Vec<ParseWarning> {
         let mut warnings = Vec::new();
         let dump = match entry.block {
             Some(Block::ChannelData { .. }) => DumpSource::Block,
@@ -302,11 +308,11 @@ impl SessionState {
                     }
                 }
                 "bridge" => {
-                    if let Some(info) = parse_bridge_args(arguments) {
+                    if let Some(info) = parse_bridge_args(arguments, block_parse) {
                         if let Some(uuid) = &info.origination_uuid {
                             self.other_leg_uuid = Some(uuid.clone());
                         }
-                        self.pending_bridge_target = Some(info.target_channel);
+                        self.pending_bridge_targets = info.target_channels;
                     }
                 }
                 _ => {}

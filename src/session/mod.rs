@@ -14,7 +14,7 @@ mod tracker;
 
 use crate::stream::LogEntry;
 
-pub use parse::{parse_bridge_args, BridgeInfo};
+pub use parse::{parse_bridge_args, BridgeInfo, DEFAULT_BLOCK_PARSE};
 pub use state::{SessionSnapshot, SessionState};
 pub use tracker::{EnrichedEntry, SessionTracker};
 

@@ -22,6 +22,7 @@ const PEER: &str = "11111111-2222-3333-4444-555555555555";
 fn printer(color: ColorMode, show_blocks: bool) -> EntryPrinter {
     EntryPrinter {
         color,
+        block_parse: freeswitch_log_parser::DEFAULT_BLOCK_PARSE,
         show_blocks,
         show_session: false,
         show_line_numbers: false,

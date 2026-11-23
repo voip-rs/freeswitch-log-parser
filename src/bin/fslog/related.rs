@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use freeswitch_log_parser::{for_each_peer_uuid_with, LogStream, SessionTracker, TrackedChain};
+use freeswitch_types::BlockParse;
 
 use crate::output::FilterConfig;
 
@@ -19,6 +20,7 @@ fn extra_peer_var(name: &str) -> bool {
 pub fn discover(
     segments: Vec<(String, Box<dyn Iterator<Item = String>>)>,
     filter: &FilterConfig,
+    block_parse: BlockParse,
 ) -> HashSet<String> {
     let (chain, _) = TrackedChain::new(segments);
     let stream = LogStream::new(chain);
@@ -28,7 +30,7 @@ pub fn discover(
     // over the whole pass and unioned at the end rather than queried inline.
     let mut members: HashMap<String, HashSet<String>> = HashMap::new();
     let mut wanted_instances: HashSet<String> = HashSet::new();
-    let mut tracker = SessionTracker::new(stream);
+    let mut tracker = SessionTracker::new(stream).with_block_parse(block_parse);
     for enriched in tracker.by_ref() {
         let instance = enriched
             .session
@@ -52,7 +54,7 @@ pub fn discover(
         if let Some(uuid) = &enriched.entry.uuid {
             uuids.insert(uuid.clone());
         }
-        for_each_peer_uuid_with(&enriched.entry, extra_peer_var, |uuid| {
+        for_each_peer_uuid_with(&enriched.entry, extra_peer_var, block_parse, |uuid| {
             uuids.insert(uuid.to_string());
         });
         if let Some(peer) = enriched
@@ -82,7 +84,7 @@ pub fn discover(
 mod tests {
     use super::*;
     use crate::output::FilterParams;
-    use freeswitch_log_parser::{LogEntry, MessageKind};
+    use freeswitch_log_parser::{LogEntry, MessageKind, DEFAULT_BLOCK_PARSE};
 
     const PEER: &str = "11111111-2222-3333-4444-555555555555";
     const A_LEG: &str = "aaaaaaaa-1111-2222-3333-444444444444";
@@ -103,7 +105,9 @@ mod tests {
 
     fn collect(entry: &LogEntry) -> Vec<String> {
         let mut out = Vec::new();
-        for_each_peer_uuid_with(entry, extra_peer_var, |u| out.push(u.to_string()));
+        for_each_peer_uuid_with(entry, extra_peer_var, DEFAULT_BLOCK_PARSE, |u| {
+            out.push(u.to_string())
+        });
         out
     }
 
@@ -139,7 +143,7 @@ mod tests {
         .expect("seed builds a matcher");
         let segments: Vec<(String, Box<dyn Iterator<Item = String>>)> =
             vec![("test.log".to_string(), Box::new(lines.into_iter()))];
-        discover(segments, &filter.for_discovery())
+        discover(segments, &filter.for_discovery(), DEFAULT_BLOCK_PARSE)
     }
 
     #[test]

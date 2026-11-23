@@ -23,6 +23,7 @@ use ratatui::widgets::TableState;
 use ratatui::Terminal;
 
 use freeswitch_log_parser::{LogStream, SessionTracker, TrackedChain};
+use freeswitch_types::BlockParse;
 
 use crate::config;
 use crate::files::{open_log_reader, resolve_log_path, ReadFailures};
@@ -57,6 +58,7 @@ fn process_log(
     path: &Path,
     context_filter: ContextFilter,
     max_line_bytes: usize,
+    block_parse: BlockParse,
     linger: Duration,
 ) -> anyhow::Result<AppState> {
     let failures = ReadFailures::default();
@@ -64,7 +66,7 @@ fn process_log(
 
     let (chain, _) = TrackedChain::new(segments);
     let stream = LogStream::new(chain);
-    let mut tracker = SessionTracker::new(stream);
+    let mut tracker = SessionTracker::new(stream).with_block_parse(block_parse);
 
     let mut state = AppState::new(dir.to_path_buf(), context_filter, Vec::new(), linger);
 
@@ -88,7 +90,14 @@ pub fn run_dump(ctx: &RunCtx, args: &MonitorArgs, linger: Duration) -> anyhow::R
         .map(ContextFilter::parse)
         .unwrap_or(ContextFilter::None);
 
-    let state = process_log(dir, &path, context_filter, ctx.max_line_bytes, linger)?;
+    let state = process_log(
+        dir,
+        &path,
+        context_filter,
+        ctx.max_line_bytes,
+        ctx.block_parse,
+        linger,
+    )?;
 
     // `println!` panics when the reader closes early; `fslog monitor --dump |
     // head` is exactly that.
@@ -117,7 +126,14 @@ pub fn run(ctx: &RunCtx, args: MonitorArgs) -> anyhow::Result<()> {
 
     let (tx, rx) = mpsc::channel();
     let (remove_tx, remove_rx) = mpsc::channel();
-    let _reader = spawn_reader(dir.to_path_buf(), path, tx, remove_rx, max_line_bytes)?;
+    let _reader = spawn_reader(
+        dir.to_path_buf(),
+        path,
+        tx,
+        remove_rx,
+        max_line_bytes,
+        ctx.block_parse,
+    )?;
 
     enable_raw_mode()?;
     io::stdout().execute(EnterAlternateScreen)?;

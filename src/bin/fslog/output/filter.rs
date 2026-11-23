@@ -174,9 +174,11 @@ impl FilterConfig {
                     || matched.iter().chain(near_matched).any(|c| wanted(&c.name))
             }
             #[cfg(feature = "sdp")]
-            Some(block @ Block::Sdp { .. }) => match block.sdp_codecs() {
-                // Every section, not the negotiable ones: an offer on a stream the
-                // peer then held is exactly what this flag is used to find.
+            // Every section: an offer on a stream the peer then held is what this finds.
+            // A held section's a= lines are what the peer wrote; the switch ignores them.
+            Some(block @ Block::Sdp { .. }) => match block.sdp_codecs_with(
+                &freeswitch_types::sdp::SdpParseOptions::new().with_port_zero_attributes(true),
+            ) {
                 Some(Ok(codecs)) => {
                     codecs
                         .sections()

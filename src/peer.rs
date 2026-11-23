@@ -9,10 +9,10 @@
 use std::str::FromStr;
 
 use freeswitch_types::variables::LoopbackVariable;
-use freeswitch_types::{ChannelVariable, VARIABLE_PREFIX};
+use freeswitch_types::{BlockParse, ChannelVariable, VARIABLE_PREFIX};
 
 use crate::message::MessageKind;
-use crate::session::parse_bridge_args;
+use crate::session::{parse_bridge_args, DEFAULT_BLOCK_PARSE};
 use crate::stream::{Block, LogEntry};
 use crate::uuid::find_uuids;
 
@@ -53,9 +53,9 @@ fn is_peer_uuid_var(name: &str) -> bool {
 /// Call `f` with every peer-leg UUID a variable assignment in `entry` carries.
 ///
 /// See [`for_each_peer_uuid_with`]; this recognizes only vanilla FreeSWITCH
-/// variables.
+/// variables and reads a dial string for [`DEFAULT_BLOCK_PARSE`].
 pub fn for_each_peer_uuid<F: FnMut(&str)>(entry: &LogEntry, f: F) {
-    for_each_peer_uuid_with(entry, |_| false, f);
+    for_each_peer_uuid_with(entry, |_| false, DEFAULT_BLOCK_PARSE, f);
 }
 
 /// Call `f` with every peer-leg UUID a variable assignment in `entry` carries,
@@ -71,9 +71,12 @@ pub fn for_each_peer_uuid<F: FnMut(&str)>(entry: &LogEntry, f: F) {
 /// — is not one of those assignments and is not walked;
 /// [`SessionState::other_leg_uuid`](crate::SessionState::other_leg_uuid) is
 /// where the per-session layer puts it.
+///
+/// A `bridge`/`att_xfer` dial string is read for `block_parse`.
 pub fn for_each_peer_uuid_with<F: FnMut(&str)>(
     entry: &LogEntry,
     extra_var: impl Fn(&str) -> bool,
+    block_parse: BlockParse,
     mut f: F,
 ) {
     let wanted = |name: &str| {
@@ -115,7 +118,9 @@ pub fn for_each_peer_uuid_with<F: FnMut(&str)>(
             // The dial string's own `origination_uuid` names the leg this call is
             // about to create, before that leg logs anything of its own.
             "bridge" | "att_xfer" => {
-                if let Some(uuid) = parse_bridge_args(arguments).and_then(|i| i.origination_uuid) {
+                if let Some(uuid) =
+                    parse_bridge_args(arguments, block_parse).and_then(|i| i.origination_uuid)
+                {
                     f(&uuid);
                 }
             }
@@ -260,6 +265,7 @@ mod tests {
         for_each_peer_uuid_with(
             &e,
             |n| n == "my_deployment_peer_id",
+            DEFAULT_BLOCK_PARSE,
             |u| out.push(u.to_string()),
         );
         assert_eq!(out, vec![PEER]);

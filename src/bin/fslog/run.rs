@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use freeswitch_log_parser::{
     LogEntry, LogStream, MessageKind, ParseStats, SessionTracker, TrackedChain,
 };
+use freeswitch_types::BlockParse;
 
 use crate::cli::FilterArgs;
 use crate::context::{Emitter, FieldCounts, HiddenCounts};
@@ -18,6 +19,7 @@ pub struct RunCtx {
     pub dir: PathBuf,
     pub color: ColorMode,
     pub max_line_bytes: usize,
+    pub block_parse: BlockParse,
 }
 
 /// What one parse run renders and how wide: the filter it admits by, the
@@ -52,7 +54,7 @@ pub fn run_output(
     let mut emitter = Emitter::new(plan, &seg_tracker);
 
     let (stats, session_count) = if fargs.session {
-        let mut tracker = SessionTracker::new(stream);
+        let mut tracker = SessionTracker::new(stream).with_block_parse(plan.printer.block_parse);
         for enriched in tracker.by_ref() {
             match emitter.on_entry(out, &enriched.entry, enriched.session.as_ref()) {
                 Err(e) if is_broken_pipe(&e) => break,

@@ -99,6 +99,7 @@ pub use session::{
     conference::ConferenceMembership,
     media::{CodecImpl, MediaCodecs, SessionMedia},
     parse_bridge_args, BridgeInfo, EnrichedEntry, SessionSnapshot, SessionState, SessionTracker,
+    DEFAULT_BLOCK_PARSE,
 };
 pub use stamp::{
     log_rotation_stamp, normalize_entry_timestamp, stamp_lower_bound, stamp_upper_bound,

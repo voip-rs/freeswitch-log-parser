@@ -6,11 +6,12 @@
 //! expansion is several times longer than the line it explains.
 
 use std::io::{self, Write};
-use std::str::FromStr;
 
 use freeswitch_log_parser::MessageKind;
 use freeswitch_types::commands::endpoint::DialString;
-use freeswitch_types::{BridgeDialString, ChannelVariable, EslArray};
+use freeswitch_types::{
+    BlockParse, BridgeDialString, ChannelVariable, DialStringCarrier, DialStringTarget, EslArray,
+};
 use log::debug;
 
 use crate::output::Palette;
@@ -34,10 +35,15 @@ pub fn dial_string_of(kind: &MessageKind) -> Option<&str> {
 /// Write the expansion of `arguments`. Writes nothing when the argument list
 /// does not parse as a dial string — the entry's own message still carries the
 /// raw text, so the failure is a debug note, not a warning.
-pub fn print_dial_string(w: &mut dyn Write, arguments: &str, p: &Palette) -> io::Result<()> {
+pub fn print_dial_string(
+    w: &mut dyn Write,
+    arguments: &str,
+    block_parse: BlockParse,
+    p: &Palette,
+) -> io::Result<()> {
     let (label_color, value_color, reset) = (p.label, p.dim, p.reset);
 
-    let dial = match BridgeDialString::from_str(arguments) {
+    let dial = match BridgeDialString::parse_for(arguments, block_parse) {
         Ok(dial) => dial,
         Err(e) => {
             debug!("the EXECUTE trace's dial-string argument does not parse: {e}");
@@ -79,6 +85,10 @@ pub fn print_dial_string(w: &mut dyn Write, arguments: &str, p: &Palette) -> io:
                 .and_then(|v| v.get(ChannelVariable::PresenceId.as_str()))
                 .map(|id| format!("ext={} ", id.split('@').next().unwrap_or(id)))
                 .unwrap_or_default();
+            let ep = ep.render(DialStringTarget::new(
+                DialStringCarrier::Dialplan,
+                block_parse,
+            ));
             writeln!(w, "{value_color}         dial     {ext}{ep}{reset}")?;
         }
     }
@@ -113,10 +123,17 @@ fn print_variable(w: &mut dyn Write, key: &str, value: &str, p: &Palette) -> io:
 mod tests {
     use super::*;
     use crate::output::ColorMode;
+    use freeswitch_log_parser::DEFAULT_BLOCK_PARSE;
 
     fn render(arguments: &str) -> String {
         let mut out: Vec<u8> = Vec::new();
-        print_dial_string(&mut out, arguments, &Palette::new(ColorMode::Never)).unwrap();
+        print_dial_string(
+            &mut out,
+            arguments,
+            DEFAULT_BLOCK_PARSE,
+            &Palette::new(ColorMode::Never),
+        )
+        .unwrap();
         String::from_utf8(out).unwrap()
     }
 

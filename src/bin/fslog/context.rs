@@ -268,6 +268,7 @@ mod tests {
     fn run(before: usize, after: usize, uuids: &[&str]) -> String {
         let printer = EntryPrinter {
             color: ColorMode::Never,
+            block_parse: freeswitch_log_parser::DEFAULT_BLOCK_PARSE,
             show_blocks: false,
             show_session: false,
             show_line_numbers: false,
@@ -334,6 +335,7 @@ mod tests {
     fn tally(filter: &FilterConfig) -> (u64, HiddenCounts) {
         let printer = EntryPrinter {
             color: ColorMode::Never,
+            block_parse: freeswitch_log_parser::DEFAULT_BLOCK_PARSE,
             show_blocks: false,
             show_session: false,
             show_line_numbers: false,
@@ -386,6 +388,7 @@ mod tests {
     fn a_replacement_char_in_the_timestamp_emits_no_date_separator() {
         let printer = EntryPrinter {
             color: ColorMode::Never,
+            block_parse: freeswitch_log_parser::DEFAULT_BLOCK_PARSE,
             show_blocks: false,
             show_session: false,
             show_line_numbers: false,

@@ -13,6 +13,7 @@ use freeswitch_log_parser::{
     CallDirection, ChannelVariable, EnrichedEntry, LifecycleEvent, LogStream, MessageKind,
     SessionState, SessionTracker, TrackedChain,
 };
+use freeswitch_types::BlockParse;
 
 use crate::files::{
     discover_log_files, display_name, open_full_tail_reader, open_log_reader, ReadFailures,
@@ -131,6 +132,7 @@ pub(super) fn spawn_reader(
     tx: mpsc::Sender<ReaderMsg>,
     remove_rx: mpsc::Receiver<String>,
     max_line_bytes: usize,
+    block_parse: BlockParse,
 ) -> io::Result<std::thread::JoinHandle<()>> {
     if !path.exists() {
         return Err(io::Error::new(
@@ -156,7 +158,7 @@ pub(super) fn spawn_reader(
 
         let (chain, _seg_tracker) = TrackedChain::new(segments);
         let stream = LogStream::new(chain);
-        let mut tracker = SessionTracker::new(stream);
+        let mut tracker = SessionTracker::new(stream).with_block_parse(block_parse);
 
         while let Some(enriched) = tracker.next() {
             drain_session_removals(&mut tracker, &remove_rx);

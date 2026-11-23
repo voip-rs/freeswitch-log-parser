@@ -5,6 +5,7 @@ use std::borrow::Cow;
 use std::io::{self, Write};
 
 use freeswitch_log_parser::{truncate_at_char_boundary, Block, LogEntry, MessageKind};
+use freeswitch_types::BlockParse;
 
 use crate::dialstring::{dial_string_of, print_dial_string};
 
@@ -13,6 +14,7 @@ use super::ColorMode;
 
 pub struct EntryPrinter {
     pub color: ColorMode,
+    pub block_parse: BlockParse,
     pub show_blocks: bool,
     pub show_session: bool,
     pub show_line_numbers: bool,
@@ -164,7 +166,7 @@ impl EntryPrinter {
                 self.print_block(w, block, &p)?;
             }
             if let Some(args) = dial_string_of(&entry.message_kind) {
-                print_dial_string(w, args, &p)?;
+                print_dial_string(w, args, self.block_parse, &p)?;
             }
         }
 

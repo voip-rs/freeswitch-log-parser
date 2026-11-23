@@ -2,6 +2,8 @@
 
 use std::collections::{HashMap, HashSet};
 
+use freeswitch_types::BlockParse;
+
 use crate::message::{LifecycleEvent, MessageKind};
 use crate::stream::{LogEntry, LogStream, ParseStats, UnclassifiedLine};
 use crate::uuid::is_uuid;
@@ -11,7 +13,7 @@ use super::conference::{
 };
 use super::index::IndexedFields;
 use super::loopback;
-use super::parse::parse_new_channel;
+use super::parse::{parse_new_channel, DEFAULT_BLOCK_PARSE};
 use super::state::{SessionSnapshot, SessionState};
 use super::SessionHook;
 
@@ -39,6 +41,7 @@ pub struct SessionTracker<I> {
     pub(super) by_pending_target: HashMap<String, HashSet<String>>,
     pub(super) by_other_leg: HashMap<String, String>,
     pub(super) conferences: ConferenceRegistry,
+    block_parse: BlockParse,
     pre_hook: Option<SessionHook>,
     post_hook: Option<SessionHook>,
 }
@@ -53,6 +56,7 @@ impl<I: Iterator<Item = String>> SessionTracker<I> {
             by_pending_target: HashMap::new(),
             by_other_leg: HashMap::new(),
             conferences: ConferenceRegistry::default(),
+            block_parse: DEFAULT_BLOCK_PARSE,
             pre_hook: None,
             post_hook: None,
         }
@@ -102,6 +106,13 @@ impl<I: Iterator<Item = String>> SessionTracker<I> {
         F: Fn(&LogEntry, &mut SessionState) + Send + 'static,
     {
         self.post_hook = Some(Box::new(hook));
+        self
+    }
+
+    /// Read `bridge()` arguments for the bracket-block parser `block_parse`, the revision
+    /// of the switch that wrote the log. Defaults to [`DEFAULT_BLOCK_PARSE`].
+    pub fn with_block_parse(mut self, block_parse: BlockParse) -> Self {
+        self.block_parse = block_parse;
         self
     }
 
@@ -227,7 +238,7 @@ impl<I: Iterator<Item = String>> SessionTracker<I> {
     fn link_pair(&mut self, a_uuid: &str, b_uuid: &str) {
         self.mutate_indexed(a_uuid, |a| {
             a.other_leg_uuid = Some(b_uuid.to_string());
-            a.pending_bridge_target = None;
+            a.pending_bridge_targets.clear();
         });
         self.mutate_indexed(b_uuid, |b| {
             b.other_leg_uuid = Some(a_uuid.to_string());
@@ -333,7 +344,7 @@ impl<I: Iterator<Item = String>> Iterator for SessionTracker<I> {
             hook(&entry, state);
         }
 
-        let unreadable = state.update_from_entry(&entry);
+        let unreadable = state.update_from_entry(&entry, self.block_parse);
 
         self.update_conference(&uuid, &entry);
         self.link_legs(&uuid, &entry);

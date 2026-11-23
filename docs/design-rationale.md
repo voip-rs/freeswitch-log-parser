@@ -82,6 +82,11 @@ either must find exactly one live, non-terminal candidate or link nothing: a
 wrong pairing propagates silently into every consumer's correlation, while a
 missing one is visible as absence.
 
+A bridge target is the name the switch's own naming gives the dialed leg, never the
+dial text: an endpoint whose name depends on configuration the log does not show
+predicts none. Where the dial string leaves that naming open to the originating
+channel's exports, every name it can produce is a candidate.
+
 Consumers have application-specific patterns the library can't anticipate:
 Lua `uuid_bridge` API results (`set(api_result=+OK <uuid>)`), custom SIP
 headers (`sip_h_X-*`), or proprietary bridging commands. Without extensibility,
@@ -172,7 +177,7 @@ spans, which travel with the text they index.
 ## Index maintenance by diffing, not setters
 
 Hooks receive `&mut SessionState` and set fields directly — but three of
-those fields (`channel_name`, `pending_bridge_target`, `other_leg_uuid`)
+those fields (`channel_name`, `pending_bridge_targets`, `other_leg_uuid`)
 back secondary lookup indexes, and a hook-set value that never reaches its
 index silently breaks cross-session linking (a hook-set `other_leg_uuid` is
 invisible to the later New-Channel back-link lookup). Setter methods would

@@ -87,7 +87,7 @@ impl Block {
 
 #[cfg(feature = "sdp")]
 impl Block {
-    /// Codecs described by an SDP body.
+    /// Codecs described by an SDP body, read as the switch reads it.
     ///
     /// `None` when there is no body to read — another block type, or an SDP
     /// marker that carried none. Sofia logs several (`Duplicate SDP`,
@@ -102,6 +102,17 @@ impl Block {
         &self,
     ) -> Option<Result<freeswitch_types::sdp::SdpCodecs, freeswitch_types::sdp::SdpCodecError>>
     {
+        self.sdp_codecs_with(&freeswitch_types::sdp::SdpParseOptions::default())
+    }
+
+    /// [`sdp_codecs`](Self::sdp_codecs) read with `options`, for a reader that wants what
+    /// the peer wrote rather than what the switch reads, such as the `a=` lines of a held
+    /// stream.
+    pub fn sdp_codecs_with(
+        &self,
+        options: &freeswitch_types::sdp::SdpParseOptions,
+    ) -> Option<Result<freeswitch_types::sdp::SdpCodecs, freeswitch_types::sdp::SdpCodecError>>
+    {
         let Block::Sdp { body, .. } = self else {
             return None;
         };
@@ -109,7 +120,9 @@ impl Block {
         if text.trim().is_empty() {
             return None;
         }
-        Some(freeswitch_types::sdp::SdpCodecs::parse(&text))
+        Some(freeswitch_types::sdp::SdpCodecs::parse_with_options(
+            &text, options,
+        ))
     }
 }
 
