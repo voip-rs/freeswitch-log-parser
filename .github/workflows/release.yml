@@ -81,12 +81,19 @@ jobs:
     # The annotated tag's message is the changelog the release process writes.
     # `contents:body` drops the subject line (already the title) and, on a signed
     # tag, the PGP block that `contents` would paste into the release notes.
+    # A semver prerelease (`-` after the version core) is flagged here, so it
+    # is never listed as the latest release once sign-release.sh publishes it.
     - name: Create release
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
+        case "$GITHUB_REF_NAME" in
+          *-*) prerelease=true ;;
+          *) prerelease=false ;;
+        esac
         gh release create "$GITHUB_REF_NAME" \
           --draft \
+          --prerelease="$prerelease" \
           --title "$GITHUB_REF_NAME" \
           --notes "$(git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME")" \
           assets/*

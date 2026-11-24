@@ -110,7 +110,8 @@ gh run watch "$(gh run list --workflow=release.yml -L1 --json databaseId --jq '.
 
    It builds the amd64/arm64 `.deb`s and binaries and creates the GitHub release
    using the tag annotation as its body. The release is left a **draft** — step 7
-   signs its assets and publishes it.
+   signs its assets and publishes it. A tag with a `-` suffix
+   (`vX.Y.Z-alpha.N`) is created with the prerelease flag already set.
 
    Red, or no run created: stop. Never retag — a fix is a new patch release. If
    the workflow never ran because Actions was down, dispatch it once Actions
